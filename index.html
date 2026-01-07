@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>BRIEF-2 Батьківська форма</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="config.js"></script>
+    <style>
+        :root { --primary: #2563eb; --bg-page: #f8fafc; --bg-card: #ffffff; --border: #cbd5e1; --radius: 12px; --text-main: #0f172a; --danger: #ef4444; }
+        body { font-family: 'Inter', sans-serif; background-color: var(--bg-page); color: var(--text-main); margin: 0; padding: 0 0 80px 0; }
+        .container { max-width: 800px; margin: 0 auto; padding: 20px; }
+        
+        .header-card { background: linear-gradient(135deg, var(--primary) 0%, #1e40af 100%); color: white; padding: 30px; border-radius: var(--radius); margin-bottom: 25px; text-align: center; box-shadow: 0 10px 25px rgba(37,99,235,0.3); }
+        .header-title { font-size: 28px; font-weight: 700; margin: 0; }
+        .header-subtitle { opacity: 0.9; margin-top: 5px; }
+
+        .card { background: var(--bg-card); border-radius: var(--radius); padding: 25px; margin-bottom: 20px; border: 1px solid #e2e8f0; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+        .section-title { color: var(--primary); font-size: 18px; font-weight: 600; margin-bottom: 20px; border-bottom: 2px solid #eff6ff; padding-bottom: 10px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 600px) { .form-grid { grid-template-columns: 1fr; } }
+        .form-group label { display: block; font-size: 14px; font-weight: 500; margin-bottom: 8px; color: #475569; }
+        .form-input { width: 100%; padding: 12px; border: 1px solid var(--border); border-radius: 8px; font-size: 16px; box-sizing: border-box; }
+
+        .question-item { padding: 15px 0; border-bottom: 1px solid #f1f5f9; }
+        .q-text { font-size: 16px; font-weight: 500; margin-bottom: 12px; }
+        .rating-options { display: flex; gap: 10px; }
+        .radio-label { flex: 1; cursor: pointer; position: relative; }
+        .radio-label input { position: absolute; opacity: 0; }
+        .radio-tile { display: flex; flex-direction: column; align-items: center; padding: 12px; background: #f8fafc; border: 2px solid var(--border); border-radius: 8px; text-align: center; transition: 0.2s; font-size: 14px; color: #64748b; }
+        .radio-label input:checked + .radio-tile { background: #eff6ff; border-color: var(--primary); color: var(--primary); font-weight: 600; box-shadow: 0 4px 6px -1px rgba(37,99,235,0.2); }
+
+        .btn-submit { width: 100%; padding: 18px; background: var(--primary); color: white; border: none; border-radius: var(--radius); font-size: 18px; font-weight: 700; cursor: pointer; margin-top: 20px; }
+        .btn-submit:disabled { background: #94a3b8; }
+        .btn-test { background: #64748b; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; opacity: 0.6; }
+        .error-msg { color: var(--danger); background: #fef2f2; padding: 15px; border-radius: 8px; margin-top: 20px; display: none; border: 1px solid #fecaca; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header-card">
+        <h1 class="header-title" id="formTitle">BRIEF-2</h1>
+        <div class="header-subtitle" id="formSubtitle">Опитувальник оцінки виконавчих функцій</div>
+    </div>
+
+    <div class="card">
+        <div class="section-title">📝 Інформація про дитину</div>
+        <div class="form-grid">
+            <div class="form-group"><label>ПІБ Дитини</label><input type="text" id="childName" class="form-input"></div>
+            <div class="form-group"><label>Стать</label>
+                <select id="gender" class="form-input">
+                    <option value="">Оберіть...</option><option value="Male">Хлопець</option><option value="Female">Дівчина</option>
+                </select>
+            </div>
+            <div class="form-group"><label>Дата народження</label><input type="date" id="dob" class="form-input"></div>
+            <div class="form-group"><label>ПІБ Батьків</label><input type="text" id="parentName" class="form-input"></div>
+            <div class="form-group"><label>Email (для звіту)</label><input type="email" id="email" class="form-input"></div>
+        </div>
+        <button type="button" id="btnTestFill" class="btn-test" onclick="fillTest()">🛠 Test Fill</button>
+    </div>
+
+    <div class="card">
+        <div class="section-title">📊 Питання</div>
+        <div id="questionsContainer"></div>
+    </div>
+
+    <button id="btnSubmit" class="btn-submit" onclick="submitForm()">Отримати результат</button>
+    <div id="errorMsg" class="error-msg"></div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        document.getElementById('formTitle').innerText = CONFIG.FORM_TITLE;
+        document.getElementById('formSubtitle').innerText = CONFIG.FORM_SUBTITLE;
+        
+        // CHECK CONFIG TO HIDE/SHOW BUTTON
+        if(CONFIG.SHOW_TEST_BUTTON === false) {
+            document.getElementById('btnTestFill').style.display = 'none';
+        }
+
+        renderQuestions();
+    });
+
+    function renderQuestions() {
+        const container = document.getElementById('questionsContainer');
+        CONFIG.QUESTIONS.forEach((qText, index) => {
+            const html = `
+                <div class="question-item" id="qrow_${index}">
+                    <div class="q-text">${index + 1}. ${qText}</div>
+                    <div class="rating-options">
+                        ${CONFIG.SCALES_LABELS.map(s => `
+                            <label class="radio-label">
+                                <input type="radio" name="q${index}" value="${s.value}">
+                                <div class="radio-tile"><strong>${s.code}</strong><br>${s.label.split(' ')[0]}</div>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>`;
+            container.insertAdjacentHTML('beforeend', html);
+        });
+    }
+
+    function calculateScores(answers) {
+        let scores = { raw: {}, indexes: {}, validity: {} };
+        for (const [key, items] of Object.entries(CONFIG.SCALES_MAP)) {
+            scores.raw[key] = items.reduce((sum, qIdx) => sum + (answers[qIdx-1] || 1), 0);
+        }
+        for (const [key, scales] of Object.entries(CONFIG.INDEX_MAP)) {
+            scores.indexes[key] = scales.reduce((sum, scale) => sum + scores.raw[scale], 0);
+        }
+        scores.indexes["GEC"] = scores.indexes["BRI"] + scores.indexes["ERI"] + scores.indexes["CRI"];
+        scores.validity["Negativity"] = CONFIG.VALIDITY_RULES.Negativity.filter(i => answers[i-1] === 3).length;
+        scores.validity["Infrequency"] = CONFIG.VALIDITY_RULES.Infrequency.filter(i => answers[i-1] >= 2).length;
+        scores.validity["Inconsistency"] = CONFIG.VALIDITY_RULES.Inconsistency.reduce((sum, pair) => 
+            sum + Math.abs((answers[pair[0]-1]||1) - (answers[pair[1]-1]||1)), 0);
+        return scores;
+    }
+
+    function generateID() {
+        const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; 
+        let result = '';
+        for (let i = 0; i < 8; i++) {
+            result += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return result;
+    }
+
+    function submitForm() {
+        const btn = document.getElementById('btnSubmit');
+        const err = document.getElementById('errorMsg');
+        err.style.display = 'none';
+
+        if (!document.getElementById('childName').value || !document.getElementById('email').value || !document.getElementById('dob').value) {
+            alert("Будь ласка, заповніть ім'я, дату народження та email"); return;
+        }
+
+        const answers = [];
+        let missing = false;
+        for (let i = 0; i < CONFIG.QUESTIONS.length; i++) {
+            const el = document.querySelector(`input[name="q${i}"]:checked`);
+            if (!el) { missing = true; document.getElementById(`qrow_${i}`).style.background = "#fff1f2"; }
+            else { answers.push(parseInt(el.value)); document.getElementById(`qrow_${i}`).style.background = "transparent"; }
+        }
+
+        if (missing) { 
+            alert("Будь ласка, дайте відповідь на всі питання."); 
+            document.querySelector('.question-item[style*="rgb(255, 241, 242)"]').scrollIntoView({behavior: "smooth", block: "center"});
+            return; 
+        }
+
+        btn.disabled = true;
+        btn.innerText = "Обробка...";
+
+        const uniqueId = generateID();
+
+        const payload = {
+            id: uniqueId, 
+            metadata: {
+                childName: document.getElementById('childName').value,
+                dob: document.getElementById('dob').value,
+                gender: document.getElementById('gender').value,
+                parentName: document.getElementById('parentName').value,
+                email: document.getElementById('email').value
+            },
+            scores: calculateScores(answers)
+        };
+
+        fetch(CONFIG.GOOGLE_SCRIPT_URL, {
+            method: "POST", mode: "no-cors",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+        }).then(() => {
+            window.location.href = `result.html?id=${uniqueId}`;
+        }).catch(e => {
+            btn.disabled = false;
+            err.innerText = "Помилка: " + e;
+            err.style.display = 'block';
+        });
+    }
+
+    function fillTest() {
+        document.getElementById('childName').value = "Test Child";
+        document.getElementById('dob').value = "2015-05-20";
+        document.getElementById('gender').value = "Male";
+        document.getElementById('email').value = "test@example.com";
+        document.querySelectorAll('input[type="radio"]').forEach(r => {
+            if (Math.random() > 0.6) r.checked = true;
+        });
+        CONFIG.QUESTIONS.forEach((_, i) => {
+            if (!document.querySelector(`input[name="q${i}"]:checked`)) 
+                document.querySelectorAll(`input[name="q${i}"]`)[0].checked = true;
+        });
+    }
+</script>
+</body>
+</html>

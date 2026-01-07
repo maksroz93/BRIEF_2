@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пошук результату BRIEF-2</title>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #f1f5f9; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); width: 100%; max-width: 400px; text-align: center; }
+        h1 { color: #2563eb; margin-bottom: 20px; font-size: 24px; }
+        input { width: 100%; padding: 12px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 16px; margin-bottom: 15px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        button:hover { background: #1e40af; }
+        .footer { margin-top: 20px; font-size: 12px; color: #64748b; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>🔍 Знайти звіт</h1>
+        <p>Введіть ID пацієнта з Google Таблиці</p>
+        <input type="text" id="searchId" placeholder="Введіть ID (напр. Xy7z...)">
+        <button onclick="findReport()">Пошук</button>
+        <p id="error" style="color:red; display:none; margin-top:10px;"></p>
+        <div class="footer">ID надсилається на пошту при реєстрації</div>
+    </div>
+
+    <script>
+        function findReport() {
+            const id = document.getElementById('searchId').value.trim();
+            if (!id) return;
+            // Redirect to result page with ID
+            window.location.href = `result.html?id=${id}`;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BRIEF-2 Результати</title>
+    <script src="config.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f1f5f9; padding: 40px; color: #0f172a; margin: 0; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 50px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+        h1 { text-align: center; color: #1e293b; font-size: 28px; margin-bottom: 10px; }
+        h2 { color: #2563eb; font-size: 18px; border-bottom: 2px solid #eff6ff; padding-bottom: 8px; margin-top: 40px; }
+        .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; background: #f8fafc; padding: 20px; border-radius: 8px; margin-bottom: 30px; }
+        .meta-item div:first-child { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+        .meta-item div:last-child { font-size: 16px; font-weight: 600; color: #0f172a; margin-top: 4px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th { text-align: left; padding: 12px; background: #f1f5f9; color: #475569; font-size: 14px; font-weight: 600; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; font-size: 15px; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: 600; display: inline-block; }
+        .status-normal { background: #dcfce7; color: #166534; }
+        .status-elevated { background: #fef3c7; color: #b45309; }
+        .status-clinical { background: #fee2e2; color: #991b1b; }
+        .status-pending { background: #f1f5f9; color: #64748b; font-style: italic; }
+        .alert-box { padding: 15px; border-radius: 8px; margin-bottom: 30px; border-left: 5px solid; }
+        .alert-warning { background: #fff7ed; border-color: #f97316; color: #9a3412; }
+        .alert-success { background: #f0fdf4; border-color: #22c55e; color: #15803d; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>BRIEF-2 Звіт</h1>
+    <div id="loading" style="text-align:center; padding: 40px;">Завантаження даних...</div>
+
+    <div id="content" style="display:none">
+        <div id="statusAlert" class="alert-box alert-warning"></div>
+
+        <div class="meta-grid">
+            <div class="meta-item"><div>Дитина</div><div id="m_name">-</div></div>
+            <div class="meta-item"><div>Вік / Стать</div><div id="m_age">-</div></div>
+            <div class="meta-item"><div>Дата заповнення</div><div id="m_date">-</div></div>
+        </div>
+
+        <h2>Валідність (Якість заповнення)</h2>
+        <table>
+            <thead><tr><th>Шкала</th><th>Значення</th><th>Статус</th></tr></thead>
+            <tbody id="validityBody"></tbody>
+        </table>
+
+        <h2>Клінічні Шкали та Індекси</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th style="width: 40%;">Шкала</th>
+                    <th style="width: 15%;">Raw Score</th>
+                    <th style="width: 15%;">T-Score</th>
+                    <th style="width: 15%;">Percentile</th>
+                    <th style="width: 15%;">Інтерпретація</th>
+                </tr>
+            </thead>
+            <tbody id="scalesBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const id = urlParams.get('id');
+
+    if(id) {
+        fetch(`${CONFIG.GOOGLE_SCRIPT_URL}?id=${id}`)
+            .then(res => res.json())
+            .then(data => {
+                if(data.error) throw new Error(data.error);
+                renderReport(data);
+            })
+            .catch(err => {
+                document.getElementById('loading').innerHTML = `Помилка: ${err.message}`;
+            });
+    } else {
+        document.getElementById('loading').innerHTML = "ID не знайдено.";
+    }
+
+    function renderReport(data) {
+        document.getElementById('loading').style.display = 'none';
+        document.getElementById('content').style.display = 'block';
+
+        // Meta
+        document.getElementById('m_name').innerText = data.metadata.childName;
+        document.getElementById('m_age').innerText = `${data.metadata.age} р. / ${data.metadata.gender}`;
+        document.getElementById('m_date').innerText = new Date(data.metadata.fillDate).toLocaleDateString();
+
+        // Check Norms
+        const hasNorms = (data.scores.t && data.scores.t["Inhibit"] !== "");
+        const alertBox = document.getElementById('statusAlert');
+        
+        if (!hasNorms) {
+            alertBox.className = "alert-box alert-warning";
+            alertBox.innerHTML = "<strong>⚠️ Очікується клінічна обробка.</strong><br>Відображено лише сирі бали. Будь ласка, внесіть T-бали в Google Таблицю.";
+        } else {
+            alertBox.className = "alert-box alert-success";
+            alertBox.innerHTML = "<strong>✅ Звіт готовий.</strong><br>Клінічні норми застосовано.";
+        }
+
+        // Validity
+        const vBody = document.getElementById('validityBody');
+        const vRules = [
+            {k:"Negativity", l:5}, {k:"Infrequency", l:1}, {k:"Inconsistency", l:8}
+        ];
+        vRules.forEach(r => {
+            const val = data.scores.validity[r.k];
+            // Use Translated Name
+            const name = CONFIG.TRANSLATIONS[r.k] || r.k;
+            
+            let badge = `<span class="badge status-normal">OK</span>`;
+            if(val > r.l) badge = `<span class="badge status-clinical">Перевірити</span>`;
+            vBody.innerHTML += `<tr><td>${name}</td><td>${val}</td><td>${badge}</td></tr>`;
+        });
+
+        // Scales
+        const sBody = document.getElementById('scalesBody');
+        const order = Object.keys(CONFIG.SCALES_MAP).concat(["BRI", "ERI", "CRI", "GEC"]);
+        
+        order.forEach(key => {
+            const raw = data.scores.raw[key];
+            let tVal = data.scores.t[key] || "-";
+            let pVal = data.scores.percentile[key] || "-";
+            
+            // Use Translated Name
+            const name = CONFIG.TRANSLATIONS[key] || key;
+
+            let statusBadge = `<span class="badge status-pending">Очікується</span>`;
+            
+            if (hasNorms) {
+                if (tVal >= 65) statusBadge = `<span class="badge status-clinical">Клінічний</span>`;
+                else if (tVal >= 60) statusBadge = `<span class="badge status-elevated">Межовий</span>`;
+                else statusBadge = `<span class="badge status-normal">Норма</span>`;
+            }
+
+            sBody.innerHTML += `
+                <tr>
+                    <td>${name}</td>
+                    <td>${raw}</td>
+                    <td><strong>${tVal}</strong></td>
+                    <td>${pVal}</td>
+                    <td>${statusBadge}</td>
+                </tr>`;
+        });
+    }
+</script>
+
+</body>
+</html>
