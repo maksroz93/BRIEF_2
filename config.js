@@ -7,7 +7,7 @@ const CONFIG = {
     FORM_SUBTITLE: "Опитувальник оцінки виконавчих функцій (Батьківська форма)",
     
     // --- NEW: Toggle Test Button (true = Show, false = Hide) ---
-    SHOW_TEST_BUTTON: true, 
+    SHOW_TEST_BUTTON: false, 
 
     // 3. Rating Scale
     SCALES_LABELS: [
