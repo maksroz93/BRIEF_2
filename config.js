@@ -1,6 +1,6 @@
 const CONFIG = {
     // 1. Google Apps Script URL
-    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbzXZVhphPmDXNxcoKVknmtF4IwMR7HOLtaXz6ONTuZBIYQLEhnu0fF6EQTPpuqye848/exec",
+    GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbxgIW26OsTitR5ChUil1LUxvT3C-LtM_1G489efHT4J0zGD0SrqYai307GMWSu4KlF4/exec",
 
     // 2. General Settings
     FORM_TITLE: "BRIEF-2",
